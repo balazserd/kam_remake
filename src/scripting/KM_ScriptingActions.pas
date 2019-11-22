@@ -3258,6 +3258,10 @@ begin
     if U = nil then Exit; //Invalid Unit ID
 
     U.MoveToPositionMagically(X, Y);
+  except
+    gScriptEvents.ExceptionOutsideScript := True;
+    raise;
+  end;
 end;
 
 
