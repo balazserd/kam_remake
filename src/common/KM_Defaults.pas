@@ -648,13 +648,13 @@ type
   //    sidenote: CanElevate is per-vertex property, hence it's not identical to CanWorker
   // 3. Set the tile as fully blocked
   TKMTileLock = (     // CanBuild CanWalk CanWorker CanElevate House Digged Fenced
-        tlNone,     // X        X         X       X          -     -      -
-        tlFenced,   // -        X         X       X          X     -      X
-        tlDigged,   // -        -         X       X          X     X      X
-        tlHouse,    // -        -         -       -          X     X      -
+        tlNone,       // X        X         X       X          -     -      -
+        tlFenced,     // -        X         X       X          X     -      X
+        tlDigged,     // -        -         X       X          X     X      X
+        tlHouse,      // -        -         -       -          X     X      -
         //Used by workers making roads/fields to prevent you from building over them
-        tlFieldWork,// -        X         X       X          -     X      -
-        tlRoadWork  // -        X         X       X          -     X      -
+        tlFieldWork,  // -        X         X       X          -     X      -
+        tlRoadWork    // -        X         X       X          -     X      -
         );
 
 

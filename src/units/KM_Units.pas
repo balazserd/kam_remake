@@ -155,6 +155,7 @@ type
     property PrevPosition: TKMPoint read fPrevPosition;
     property NextPosition: TKMPoint read fNextPosition write SetNextPosition;
     procedure SetPosition(aPos: TKMPoint);
+    function MoveToPositionMagically(X, Y: Integer): Boolean;
 
     property Direction: TKMDirection read fDirection write SetDirection;
     property CurrentHitPoints: Byte read fHitPoints;
@@ -2015,6 +2016,58 @@ begin
   end;
 end;
 
+function TKMUnit.MoveToPositionMagically(X, Y: Integer): Boolean;
+//This action will remove all orders (move, carry, attack etc.) the unit previously had.
+//This action will have no effect if any parameter is invalid (e.g. invalid location, invalid Unit ID...).
+var
+  LocToMoveTo: TKMPoint;
+  PassabilityType: TKMTerrainPassability;
+begin
+  try
+    Result := False; //Invalid position to set for unit, indicates we did not relocate
+
+    if not Land[X, Y].TileLock in [tlNone, tlFenced, tlFieldWork, tlRoadWork] then Exit; //Tile is locked for a unit to stand at.
+    if not gTerrain.TileInMapCoords(X, Y) then Exit; //Coordinates outside Map.
+    
+    LocToMoveTo := KMPoint(X, Y);
+    PassabilityType := gRes.Units[aUnitType].AllowedPassability;
+    if gTerrain.HasUnit(LocToMoveTo) then Exit; //Location already occupied by a unit.
+    if not gTerrain.CheckPassability(LocToMoveTo, PassabilityType) then Exit; //Coordinate is not walkable by the unit type.
+
+    //If in house, we need extra care
+    if fInHouse <> nil then begin
+      fVisible := True; //Unit becomes visible
+      
+      SetInHouse(nil); //Cannot be inside a house anymore
+      gTerrain.UnitAdd(fCurrPosition, Self); //Unit was not occupying tile while inside the house, hence just add do not remove
+
+      //OnWarriorWalkOut usually happens in TUnitActionGoInOut, otherwise the warrior doesn't get assigned a group
+      //Do this after setting terrain usage since OnWarriorWalkOut calls script events
+      if (Self is TKMUnitWarrior) and Assigned(TKMUnitWarrior(Self).OnWarriorWalkOut) then
+        TKMUnitWarrior(Self).OnWarriorWalkOut(TKMUnitWarrior(Self));
+
+      if Action is TKMUnitActionGoInOut then
+        SetActionLockedStay(0, uaWalk); //Abandon the walk out in this case
+
+      if (Task is TKMTaskGoEat) and (TKMTaskGoEat(Task).Eating) then
+      begin
+        FreeAndNil(fTask); //Stop the eating animation and makes the unit appear
+        SetActionStay(0, uaWalk); //Free the current action and give the unit a temporary one
+      end;
+      //If we were idle abandon our action so we look for a new house immediately (rather than after 20 seconds for the fisherman)
+      if (Task = nil) and (Action is TKMUnitActionStay) and not TKMUnitActionStay(Action).Locked then
+        SetActionStay(0, uaWalk); //Free the current action and give the unit a temporary one
+    end;
+
+    CancelTask(); //Cancel current task
+    SetActionStay(5, uaWalk); //Temporary action so unit can find later a new one
+    SetCurrPosition(LocToMoveTo); 
+
+    IsExchanging := false;
+    fPositionF := KMPointF(fCurrPosition);
+    fPrevPosition := fCurrPosition;
+    fNextPosition := fCurrPosition;
+end;
 
 procedure TKMUnit.VertexAdd(const aFrom, aTo: TKMPoint);
 begin

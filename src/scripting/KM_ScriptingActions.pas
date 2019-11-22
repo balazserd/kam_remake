@@ -165,6 +165,7 @@ type
     procedure UnitHPSetInvulnerable(aUnitID: Integer; aInvulnerable: Boolean);
     procedure UnitHungerSet(aUnitID, aHungerLevel: Integer);
     procedure UnitKill(aUnitID: Integer; aSilent: Boolean);
+    function  UnitPositionSet(aUnitID: Integer; X, Y: Word): Boolean;
     function  UnitOrderWalk(aUnitID: Integer; X, Y: Word): Boolean;
   end;
 
@@ -3240,6 +3241,23 @@ begin
     gScriptEvents.ExceptionOutsideScript := True; //Don't blame script for this exception
     raise;
   end;
+end;
+
+function TKMScriptActions.UnitPositionSet(aUnitID: Integer; X, Y: Word): Boolean;
+//This action will remove all orders (move, carry, attack etc.) the unit previously had.
+//This action will have no effect if any parameter is invalid (e.g. invalid location, invalid Unit ID...).
+var
+  LocToMoveTo: TKMPoint;
+  PassabilityType: TKMTerrainPassability;
+begin
+  try
+    Result := False; //Invalid position to set for unit, indicates we did not relocate
+
+    if (aUnitID < 1) then Exit; //Invalid Unit ID
+    U := fIDCache.GetUnit(aUnitID);
+    if U = nil then Exit; //Invalid Unit ID
+
+    U.MoveToPositionMagically(X, Y);
 end;
 
 
